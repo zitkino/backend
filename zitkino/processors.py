@@ -2,8 +2,8 @@
 
 
 import re
+import decimal
 from os import path
-from decimal import Decimal
 
 from .utils import absolutize_url
 
@@ -32,11 +32,19 @@ class ToTagCodes(object):
             yield value.upper().replace('_', '-')
 
 
-class ToPrices(object):
+class ToNumbers(object):
+
+    def __init__(self, cls=int):
+        self.cls = cls
 
     def __call__(self, values):
         for value in values:
-            yield Decimal(re.sub(r'[^\d\.\,]', '', value).replace(',', '.'))
+            if isinstance(value, basestring):
+                value = re.sub(r'[^\d\.\,]', '', value).replace(',', '.')
+            try:
+                yield self.cls(value)
+            except (ValueError, TypeError, decimal.InvalidOperation):
+                pass  # skip it
 
 
 class AbsolutizeUrls(object):

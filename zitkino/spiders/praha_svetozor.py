@@ -9,9 +9,7 @@ from ..loaders import (ImageTagLoader, LinkTagLoader, TextTagLoader,
 class Spider(BaseCinemaSpider):
 
     name = 'praha-svetozor'
-    allowed_domains = ['kinosvetozor.cz']
-    start_urls = ['http://www.kinosvetozor.cz/cz/program/']
-
+    calendar_url = 'http://www.kinosvetozor.cz/cz/program/'
     calendar_next_link = ".//*[@class='next-week-link']/@href"
 
     calendar_showtime_element = ".//tr[td[@class='film']]"

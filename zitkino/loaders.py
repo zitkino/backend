@@ -2,6 +2,7 @@
 
 
 import string
+from decimal import Decimal
 
 from scrapy.contrib.loader import ItemLoader
 from scrapy.contrib.loader.processor import TakeFirst, Compose, MapCompose
@@ -9,7 +10,7 @@ from scrapy.contrib.loader.processor import TakeFirst, Compose, MapCompose
 from .utils import serialize_form
 from .items import Showtime, Film, Tag, Request
 from .processors import (NormalizeSpace, Unique, AbsolutizeUrls, ToCsfdIds,
-                         ToPrices, ToImdbIds, ToYoutubeIds, ToTagCodes)
+                         ToNumbers, ToImdbIds, ToYoutubeIds, ToTagCodes)
 
 
 class FilmLoader(ItemLoader):
@@ -21,8 +22,8 @@ class FilmLoader(ItemLoader):
     csfd_id_in = ToCsfdIds()
     imdb_id_in = ToImdbIds()
     youtube_id_in = ToYoutubeIds()
-    year_in = MapCompose(int)
-    duration_in = MapCompose(int)
+    year_in = ToNumbers()
+    duration_in = ToNumbers()
     poster_urls_in = AbsolutizeUrls()
 
     poster_urls_out = Unique()
@@ -34,7 +35,7 @@ class ShowtimeLoader(FilmLoader):
     default_output_processor = Compose(NormalizeSpace(), TakeFirst())
 
     calendar_url_in = AbsolutizeUrls()
-    price_in = ToPrices()
+    price_in = ToNumbers(Decimal)
 
     tags_out = Unique()
 
@@ -52,7 +53,7 @@ class TextTagLoader(TagLoader):
     """Ready-made text tag loader."""
 
     def load_item(self):
-        self.add_xpath('name', "./text()")
+        self.add_xpath('name', ".//text()")
         return super(TextTagLoader, self).load_item()
 
 
@@ -61,7 +62,7 @@ class LinkTagLoader(TagLoader):
 
     def load_item(self):
         self.add_xpath('name', "./@title")
-        self.add_xpath('code', "./text()")
+        self.add_xpath('code', ".//text()")
         self.add_xpath('url', "./@href")
         return super(LinkTagLoader, self).load_item()
 

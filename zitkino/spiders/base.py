@@ -48,8 +48,7 @@ class BaseCinemaSpider(Spider):
 
     # General settings
     name = None
-    allowed_domains = []
-    start_urls = []
+    calendar_url = None
 
     # Main calendar element and links to following days/weeks/months...
     calendar_max_pages = 10
@@ -84,6 +83,9 @@ class BaseCinemaSpider(Spider):
         super(BaseCinemaSpider, self).__init__(*args, **kwargs)
         self.calendar_pages = 1
 
+    def start_requests(self):
+        return [self.make_requests_from_url(self.calendar_url)]
+
     def parse(self, resp):
         """Parses the first page as a calendar and is able to follow calendars
         for next days/weeks/months... by 'next links'.
@@ -96,7 +98,7 @@ class BaseCinemaSpider(Spider):
     def follow_next_link(self, resp):
         """Finds and follows next links."""
         if not self.calendar_next_link:
-            return
+            return []
         limit = self.calendar_max_pages - self.calendar_pages
 
         next_urls = Selector(resp).xpath(self.calendar_next_link).extract()
