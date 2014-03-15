@@ -1,14 +1,11 @@
 # -*- coding: utf-8 -*-
 
 
-from .base import CinemaSpider, ImageTagLoader, LinkTagLoader, TextTagLoader
+from .base import BaseCinemaSpider
+from ..loaders import ImageTagLoader, LinkTagLoader, TextTagLoader
 
 
-class Spider(CinemaSpider):
-
-    # parsovat text
-    # (Attila Marcel) Režie: Sylvain Chomet, F, 2013,
-    # francouzsky / české titulky, 102 min
+class Spider(BaseCinemaSpider):
 
     name = 'praha-svetozor'
     allowed_domains = ['kinosvetozor.cz']

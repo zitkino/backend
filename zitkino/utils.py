@@ -1,20 +1,26 @@
 # -*- coding: utf-8 -*-
 
 
-import re
-
 from scrapy.utils.url import urljoin_rfc
 from scrapy.utils.response import get_base_url
 from scrapy.selector import Selector as BaseSelector, SelectorList
 
 
-def absolute_url(url, response):
+def absolutize_url(url, response):
+    """Takes URL and makes it absolute."""
     if url.startswith('http'):
         return url
     return urljoin_rfc(get_base_url(response), url)
 
 
 class Selector(BaseSelector):
+    """
+    Enhanced selector.
+
+    Its methods accept also lists of XPath/CSS/RE expressions. If list of
+    expressions is given, their results are combined and returned as only one
+    :class:`SelectorList`.
+    """
 
     def _query_one_or_many(self, meth, queries):
         if isinstance(queries, basestring):
@@ -41,25 +47,3 @@ class Selector(BaseSelector):
             super(Selector, self).re,
             queries,
         )
-
-
-class NormalizeSpace(object):
-
-    _whitespace_re = re.compile(
-        ur'[{0}\s\xa0]+'.format(
-            re.escape(''.join(map(unichr, range(0, 32) + range(127, 160))))
-        )
-    )
-
-    def __call__(self, values):
-        for value in values:
-            if isinstance(value, basestring):
-                yield self._whitespace_re.sub(' ', value).strip()
-            else:
-                yield value
-
-
-class Unique(object):
-
-    def __call__(self, values):
-        return list(frozenset(v for v in values if v))

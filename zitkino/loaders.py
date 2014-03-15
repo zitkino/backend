@@ -5,9 +5,8 @@ from scrapy.contrib.loader import ItemLoader
 from scrapy.contrib.loader.processor import TakeFirst, Compose, MapCompose
 
 from .items import Showtime, Film, Tag
-from .utils import NormalizeSpace, Unique
-from .coercing import (coerce_absolute_url, coerce_tag_code, coerce_csfd_id,
-                       coerce_imdb_id, coerce_youtube_id, coerce_price)
+from .processors import (NormalizeSpace, Unique, AbsolutizeUrls, ToCsfdIds,
+                         ToPrices, ToImdbIds, ToYoutubeIds, ToTagCodes)
 
 
 class FilmLoader(ItemLoader):
@@ -15,13 +14,13 @@ class FilmLoader(ItemLoader):
     default_item_class = Film
     default_output_processor = Compose(NormalizeSpace(), TakeFirst())
 
-    film_url_in = MapCompose(coerce_absolute_url)
-    csfd_id_in = MapCompose(coerce_csfd_id)
-    imdb_id_in = MapCompose(coerce_imdb_id)
-    youtube_id_in = MapCompose(coerce_youtube_id)
+    film_url_in = AbsolutizeUrls()
+    csfd_id_in = ToCsfdIds()
+    imdb_id_in = ToImdbIds()
+    youtube_id_in = ToYoutubeIds()
     year_in = MapCompose(int)
     duration_in = MapCompose(int)
-    poster_urls_in = MapCompose(coerce_absolute_url)
+    poster_urls_in = AbsolutizeUrls()
 
     poster_urls_out = Unique()
 
@@ -31,8 +30,8 @@ class ShowtimeLoader(FilmLoader):
     default_item_class = Showtime
     default_output_processor = Compose(NormalizeSpace(), TakeFirst())
 
-    calendar_url_in = MapCompose(coerce_absolute_url)
-    price_in = MapCompose(coerce_price)
+    calendar_url_in = AbsolutizeUrls()
+    price_in = ToPrices()
 
     tags_out = Unique()
 
@@ -55,5 +54,33 @@ class TagLoader(ItemLoader):
     default_item_class = Tag
     default_output_processor = Compose(NormalizeSpace(), TakeFirst())
 
-    code_in = MapCompose(coerce_tag_code)
-    url_in = MapCompose(coerce_absolute_url)
+    code_in = ToTagCodes()
+    url_in = AbsolutizeUrls()
+
+
+class TextTagLoader(TagLoader):
+    """Ready-made text tag loader."""
+
+    def __init__(self, *args, **kwargs):
+        super(TextTagLoader, self).__init__(*args, **kwargs)
+        self.add_xpath('name', "./text()")
+
+
+class LinkTagLoader(TagLoader):
+    """Ready-made link tag loader."""
+
+    def __init__(self, *args, **kwargs):
+        super(LinkTagLoader, self).__init__(*args, **kwargs)
+        self.add_xpath('name', "./@title")
+        self.add_xpath('code', "./text()")
+        self.add_xpath('url', "./@href")
+
+
+class ImageTagLoader(TagLoader):
+    """Ready-made image tag loader."""
+
+    def __init__(self, *args, **kwargs):
+        super(ImageTagLoader, self).__init__(*args, **kwargs)
+        self.add_xpath('name', "./@title")
+        self.add_xpath('name', "./@alt")
+        self.add_xpath('code', "./@src")
