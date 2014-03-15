@@ -46,6 +46,10 @@ class BaseCinemaSpider(Spider):
     # (Attila Marcel) Režie: Sylvain Chomet, F, 2013,
     # francouzsky / české titulky, 102 min
 
+    # TODO udelat calendar_next tak, aby zvladl iterovat i nad formularem
+    # se selectama a pritom iteroval jen ty, ktere se tykaji data (mit moznost
+    # urcit pevne hodnoty nektere)
+
     # General settings
     name = None
     calendar_url = None
@@ -53,7 +57,7 @@ class BaseCinemaSpider(Spider):
     # Main calendar element and links to following days/weeks/months...
     calendar_max_pages = 10
     calendar_element = "//body"  # XPath expression
-    calendar_next_link = ""  # XPath expression
+    calendar_next = ""  # XPath expression
 
     # Main calendar's showtimes and their attributes
     calendar_showtime_element = ""  # XPath expression
@@ -92,16 +96,16 @@ class BaseCinemaSpider(Spider):
         """
         for rv in self.parse_calendar(resp):
             yield rv
-        for rv in self.follow_next_link(resp):
+        for rv in self.follow_next(resp):
             yield rv
 
-    def follow_next_link(self, resp):
+    def follow_next(self, resp):
         """Finds and follows next links."""
-        if not self.calendar_next_link:
+        if not self.calendar_next:
             return []
         limit = self.calendar_max_pages - self.calendar_pages
 
-        next_urls = Selector(resp).xpath(self.calendar_next_link).extract()
+        next_urls = Selector(resp).xpath(self.calendar_next).extract()
         next_urls = list(frozenset(next_urls))[:limit]
         self.calendar_pages += len(next_urls)
 

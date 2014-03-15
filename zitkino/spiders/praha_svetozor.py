@@ -10,7 +10,7 @@ class Spider(BaseCinemaSpider):
 
     name = 'praha-svetozor'
     calendar_url = 'http://www.kinosvetozor.cz/cz/program/'
-    calendar_next_link = ".//*[@class='next-week-link']/@href"
+    calendar_next = ".//a[@class='next-week-link']/@href"
 
     calendar_showtime_element = ".//tr[td[@class='film']]"
     calendar_showtime = Fields([
