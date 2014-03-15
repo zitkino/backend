@@ -53,7 +53,17 @@ class TextTagLoader(TagLoader):
     """Ready-made text tag loader."""
 
     def load_item(self):
-        self.add_xpath('name', ".//text()")
+        if self.selector.xpath("./@title").extract():
+            self.add_xpath('name', "./@title")
+            self.add_xpath('code', ".//text()")
+        else:
+            proc = self.default_output_processor
+            text = proc(self.selector.xpath(".//text()").extract())
+
+            if text and text.upper() == text and len(text) < 5:
+                self.add_xpath('code', ".//text()")
+            else:
+                self.add_xpath('name', ".//text()")
         return super(TextTagLoader, self).load_item()
 
 
