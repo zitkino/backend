@@ -1,10 +1,13 @@
 # -*- coding: utf-8 -*-
 
 
+import string
+
 from scrapy.contrib.loader import ItemLoader
 from scrapy.contrib.loader.processor import TakeFirst, Compose, MapCompose
 
-from .items import Showtime, Film, Tag
+from .utils import serialize_form
+from .items import Showtime, Film, Tag, Request
 from .processors import (NormalizeSpace, Unique, AbsolutizeUrls, ToCsfdIds,
                          ToPrices, ToImdbIds, ToYoutubeIds, ToTagCodes)
 
@@ -35,19 +38,6 @@ class ShowtimeLoader(FilmLoader):
 
     tags_out = Unique()
 
-    def add_attrs(self, attr_queries):
-        for attr, queries in attr_queries.items():
-            if isinstance(queries, basestring):
-                queries = [queries]
-            for query in queries:
-                self.add_xpath(attr, query)
-
-    def add_tags(self, tag_loaders):
-        for queries, cls in tag_loaders:
-            for result in self.selector.xpath(queries):
-                l = cls(selector=result, response=self.context.get('response'))
-                self.add_value('tags', l.load_item())
-
 
 class TagLoader(ItemLoader):
 
@@ -61,26 +51,50 @@ class TagLoader(ItemLoader):
 class TextTagLoader(TagLoader):
     """Ready-made text tag loader."""
 
-    def __init__(self, *args, **kwargs):
-        super(TextTagLoader, self).__init__(*args, **kwargs)
+    def load_item(self):
         self.add_xpath('name', "./text()")
+        return super(TextTagLoader, self).load_item()
 
 
 class LinkTagLoader(TagLoader):
     """Ready-made link tag loader."""
 
-    def __init__(self, *args, **kwargs):
-        super(LinkTagLoader, self).__init__(*args, **kwargs)
+    def load_item(self):
         self.add_xpath('name', "./@title")
         self.add_xpath('code', "./text()")
         self.add_xpath('url', "./@href")
+        return super(LinkTagLoader, self).load_item()
 
 
 class ImageTagLoader(TagLoader):
     """Ready-made image tag loader."""
 
-    def __init__(self, *args, **kwargs):
-        super(ImageTagLoader, self).__init__(*args, **kwargs)
+    def load_item(self):
         self.add_xpath('name', "./@title")
         self.add_xpath('name', "./@alt")
         self.add_xpath('code', "./@src")
+        return super(ImageTagLoader, self).load_item()
+
+
+class RequestLoader(ItemLoader):
+
+    default_item_class = Request
+    default_output_processor = Compose(NormalizeSpace(), TakeFirst())
+
+    url_in = AbsolutizeUrls()
+    method_in = MapCompose(string.upper)
+
+    def load_item(self):
+        name = self.selector.xpath("name(.)").extract()[0]
+        if name == 'a':
+            self.add_xpath('url', "./@href")
+            self.add_value('method', "GET")
+
+        elif name == 'form':
+            self.add_xpath('url', "./@action")
+            self.add_xpath('method', "./@method")
+            self.add_value('data', serialize_form(self.selector))
+
+        else:
+            raise ValueError("Invalid booking tag: {}".format(name))
+        return super(RequestLoader, self).load_item()

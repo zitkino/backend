@@ -3,9 +3,34 @@
 
 from scrapy.http import Request
 from scrapy.spider import Spider
+from scrapy.selector import Selector
 
+from ..utils import absolutize_url
 from ..loaders import ShowtimeLoader
-from ..utils import Selector, absolutize_url
+
+
+class Fields(object):
+    """Field definitions container."""
+
+    def __init__(self, fields):
+        self.fields = []
+        for field in fields:
+            if len(field) == 2:
+                field_name, xpath = field
+                subloader_cls = None
+            elif len(field) == 3:
+                field_name, xpath, subloader_cls = field
+            else:
+                raise ValueError
+            self.fields.append((field_name, xpath, subloader_cls))
+
+    def __iter__(self):
+        return iter(self.fields)
+
+    def get_xpath(self, field_name):
+        return '|'.join([
+            xpath for (name, xpath, _) in self.fields if name == field_name
+        ])
 
 
 class BaseCinemaSpider(Spider):
@@ -29,31 +54,31 @@ class BaseCinemaSpider(Spider):
     # Main calendar element and links to following days/weeks/months...
     calendar_max_pages = 10
     calendar_element = "//body"  # XPath expression
-    calendar_next_link = []  # XPath expression (or list of them)
+    calendar_next_link = ""  # XPath expression
 
     # Main calendar's showtimes and their attributes
-    calendar_showtime_element = []  # XPath expression (or list of them)
-    calendar_showtime = {
-        # 'title_original': []  # XPath expression (or list of them)
+    calendar_showtime_element = ""  # XPath expression
+    calendar_showtime = Fields([
+        # ('title', ".//h1")
+        # ('booking', ".//form", BookingLoader)
         # ...
-    }
-    calendar_showtime_tag_loaders = []
+    ])
 
     # Information on film's detail page
-    film = {
-        # 'title_original': []  # XPath expression (or list of them)
+    film = Fields([
+        # ('title', ".//h1")
+        # ('booking', ".//form", BookingLoader)
         # ...
-    }
-    film_tag_loaders = []
+    ])
 
     # Possible subcalendar on film's detail page
-    subcalendar_element = []  # XPath expression (or list of them)
-    subcalendar_showtime_element = []  # XPath expression (or list of them)
-    subcalendar_showtime = {
-        # 'title_original': []  # XPath expression (or list of them)
+    subcalendar_element = ""  # XPath expression
+    subcalendar_showtime_element = ""  # XPath expression
+    subcalendar_showtime = Fields([
+        # ('title', ".//h1")
+        # ('booking', ".//form", BookingLoader)
         # ...
-    }
-    subcalendar_showtime_tag_loaders = []
+    ])
 
     def __init__(self, *args, **kwargs):
         super(BaseCinemaSpider, self).__init__(*args, **kwargs)
@@ -88,17 +113,16 @@ class BaseCinemaSpider(Spider):
         for showtime in showtimes:
             loader = ShowtimeLoader(selector=showtime, response=resp)
             loader.add_value('calendar_url', resp.url)
-            loader.add_tags(self.calendar_showtime_tag_loaders)
-            loader.add_attrs(self.calendar_showtime)
+            self.populate_loader(loader, self.calendar_showtime)
 
             for rv in self.follow_film_url(resp, showtime, loader):
                 yield rv
 
     def follow_film_url(self, resp, showtime, loader):
         """Follows the 'film_url' in order to parse film's detail page."""
-        film_url_xpath = self.calendar_showtime.get('film_url')
-        if film_url_xpath:
-            film_urls = showtime.xpath(film_url_xpath).extract()
+        xpath = self.calendar_showtime.get_xpath('film_url')
+        if xpath:
+            film_urls = showtime.xpath(xpath).extract()
             subreqs = self.subrequests(film_urls, resp, self.parse_film,
                                        meta={'loader': loader})
             for subreq in subreqs:
@@ -109,8 +133,7 @@ class BaseCinemaSpider(Spider):
     def parse_film(self, resp):
         """Parses film's detail page."""
         loader = resp.meta['loader']
-        loader.add_tags(self.film_tag_loaders)
-        loader.add_attrs(self.film)
+        self.populate_loader(loader, self.film)
         yield loader.load_item()
 
         for showtime in self.parse_subcalendar(resp):
@@ -124,9 +147,21 @@ class BaseCinemaSpider(Spider):
         for showtime in showtimes:
             loader = ShowtimeLoader(selector=showtime, response=resp)
             loader.add_value('calendar_url', resp.url)
-            loader.add_tags(self.subcalendar_showtime_tag_loaders)
-            loader.add_attrs(self.subcalendar_showtime)
+            self.populate_loader(loader, self.subcalendar_showtime)
             yield loader.load_item()
+
+    def populate_loader(self, loader, fields):
+        """Populates loader according to field definitions."""
+        for field_name, xpath, subloader_cls in fields:
+            if subloader_cls is not None:
+                for result in loader.selector.xpath(xpath):
+                    subloader = subloader_cls(
+                        selector=result,
+                        response=loader.context.get('response')
+                    )
+                    loader.add_value(field_name, subloader.load_item())
+            else:
+                loader.add_xpath(field_name, xpath)
 
     def subrequests(self, urls, resp, callback, meta=None):
         """Helper for spawning subrequests."""

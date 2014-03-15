@@ -10,6 +10,12 @@ class Tag(Item):
     url = Field()
 
 
+class Request(Item):
+    url = Field()
+    method = Field()
+    data = Field()
+
+
 class Film(Item):
     title = Field()
     title_original = Field()
@@ -34,3 +40,4 @@ class Showtime(Film):
     calendar_url = Field()
     price = Field()
     tags = Field()
+    booking = Field()
