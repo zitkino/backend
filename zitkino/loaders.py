@@ -2,15 +2,16 @@
 
 
 import string
-from decimal import Decimal
 
 from scrapy.contrib.loader import ItemLoader
-from scrapy.contrib.loader.processor import TakeFirst, Compose, MapCompose
+from scrapy.contrib.loader.processor import (TakeFirst, Compose, MapCompose,
+                                             Join)
 
-from .utils import serialize_form
+from .crawler import Crawler
 from .items import Showtime, Film, Tag, Request
 from .processors import (NormalizeSpace, Unique, AbsolutizeUrls, ToCsfdIds,
-                         ToNumbers, ToImdbIds, ToYoutubeIds, ToTagCodes)
+                         ToNumbers, ToImdbIds, ToYoutubeIds, ToTagCodes,
+                         ToPrices)
 
 
 class FilmLoader(ItemLoader):
@@ -25,6 +26,8 @@ class FilmLoader(ItemLoader):
     year_in = ToNumbers()
     duration_in = ToNumbers()
     poster_urls_in = AbsolutizeUrls()
+    info_in = Join(' ')
+    description_in = Join(' ')
 
     poster_urls_out = Unique()
 
@@ -35,9 +38,10 @@ class ShowtimeLoader(FilmLoader):
     default_output_processor = Compose(NormalizeSpace(), TakeFirst())
 
     calendar_url_in = AbsolutizeUrls()
-    price_in = ToNumbers(Decimal)
+    prices_in = ToPrices()
 
     tags_out = Unique()
+    prices_out = Unique()
 
 
 class TagLoader(ItemLoader):
@@ -53,17 +57,9 @@ class TextTagLoader(TagLoader):
     """Ready-made text tag loader."""
 
     def load_item(self):
-        if self.selector.xpath("./@title").extract():
-            self.add_xpath('name', "./@title")
-            self.add_xpath('code', ".//text()")
-        else:
-            proc = self.default_output_processor
-            text = proc(self.selector.xpath(".//text()").extract())
-
-            if text and text.upper() == text and len(text) < 5:
-                self.add_xpath('code', ".//text()")
-            else:
-                self.add_xpath('name', ".//text()")
+        self.add_xpath('name', "./@title")
+        self.add_xpath('name', ".//text()")
+        self.add_xpath('code', ".//text()")
         return super(TextTagLoader, self).load_item()
 
 
@@ -72,6 +68,7 @@ class LinkTagLoader(TagLoader):
 
     def load_item(self):
         self.add_xpath('name', "./@title")
+        self.add_xpath('name', ".//text()")
         self.add_xpath('code', ".//text()")
         self.add_xpath('url', "./@href")
         return super(LinkTagLoader, self).load_item()
@@ -96,16 +93,10 @@ class RequestLoader(ItemLoader):
     method_in = MapCompose(string.upper)
 
     def load_item(self):
-        name = self.selector.xpath("name(.)").extract()[0]
-        if name == 'a':
-            self.add_xpath('url', "./@href")
-            self.add_value('method', "GET")
-
-        elif name == 'form':
-            self.add_xpath('url', "./@action")
-            self.add_xpath('method', "./@method")
-            self.add_value('data', serialize_form(self.selector))
-
-        else:
-            raise ValueError("Invalid booking tag: {}".format(name))
+        crawler = Crawler(self.selector)
+        for request in crawler.requests(self.context.get('response')):
+            self.add_value('url', request.url)
+            self.add_value('method', request.method)
+            self.add_value('data', request.body)
+            break
         return super(RequestLoader, self).load_item()

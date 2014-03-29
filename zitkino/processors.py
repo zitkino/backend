@@ -28,8 +28,12 @@ class ToTagCodes(object):
 
     def __call__(self, values):
         for value in values:
-            value = path.splitext(path.basename(value))[0]
-            yield value.upper().replace('_', '-')
+            if value.lower().endswith(('jpg', 'jpeg', 'png', 'gif')):
+                value = path.splitext(path.basename(value))[0]
+                value = value.upper().replace('_', '-')
+
+            if value and value.upper() == value and len(value) < 5:
+                yield value
 
 
 class ToNumbers(object):
@@ -47,12 +51,27 @@ class ToNumbers(object):
                 pass  # skip it
 
 
+class ToPrices(ToNumbers):
+
+    split_re = re.compile(r'/')
+
+    def __init__(self):
+        super(ToPrices, self).__init__(decimal.Decimal)
+
+    def __call__(self, multivalues):
+        for multivalue in multivalues:
+            values = self.split_re.split(multivalue)
+            for value in super(ToPrices, self).__call__(values):
+                yield value
+
+
 class AbsolutizeUrls(object):
 
     def __call__(self, values, loader_context):
         for value in values:
-            response = loader_context.get('response')
-            yield absolutize_url(value, response)
+            if value:
+                response = loader_context.get('response')
+                yield absolutize_url(value, response)
 
 
 class ToCsfdIds(object):

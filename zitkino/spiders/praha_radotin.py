@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 
 
-from .base import BaseCinemaSpider, Fields
+from .base import BaseCinemaSpider
 from ..loaders import (TextTagLoader, RequestLoader)
 
 
@@ -16,7 +16,7 @@ class Spider(BaseCinemaSpider):
     calendar_element = "//table[@class='tblKinoList']"
 
     calendar_showtime_element = ".//tr[not(th) and not(td[@colspan])]"
-    calendar_showtime = Fields([
+    calendar_showtime = [
         ('showtime_date', ".//td[2]/text()"),
         ('showtime_time', ".//td[3]/text()"),
         ('title', ".//td[4]//text()"),
@@ -24,6 +24,6 @@ class Spider(BaseCinemaSpider):
         ('tags', ".//td[7]", TextTagLoader),
         ('duration', ".//td[8]//text()"),
         ('csfd_id', "//a[contains(@href,'csfd.cz')]/@href"),
-        ('price', "./following-sibling::tr[1]/td[2]//text()"),
+        ('prices', "./following-sibling::tr[1]/td[2]//text()"),
         ('booking', "./following-sibling::tr[1]/td[3]//a", RequestLoader),
-    ])
+    ]

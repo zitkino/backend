@@ -38,6 +38,6 @@ class Showtime(Film):
     showtime_year = Field()
     showtime_datetime = Field()
     calendar_url = Field()
-    price = Field()
+    prices = Field()
     tags = Field()
     booking = Field()
