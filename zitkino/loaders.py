@@ -4,10 +4,9 @@
 import string
 
 from scrapy.contrib.loader import ItemLoader
-from scrapy.contrib.loader.processor import (TakeFirst, Compose, MapCompose,
-                                             Join)
+from scrapy.contrib.loader.processor import (TakeFirst, Compose, Join,
+                                             MapCompose)
 
-from .crawler import Crawler
 from .items import Showtime, Film, Tag, Request
 from .processors import (NormalizeSpace, Unique, AbsolutizeUrls, ToCsfdIds,
                          ToNumbers, ToImdbIds, ToYoutubeIds, ToTagCodes,
@@ -53,37 +52,6 @@ class TagLoader(ItemLoader):
     url_in = AbsolutizeUrls()
 
 
-class TextTagLoader(TagLoader):
-    """Ready-made text tag loader."""
-
-    def load_item(self):
-        self.add_xpath('name', "./@title")
-        self.add_xpath('name', ".//text()")
-        self.add_xpath('code', ".//text()")
-        return super(TextTagLoader, self).load_item()
-
-
-class LinkTagLoader(TagLoader):
-    """Ready-made link tag loader."""
-
-    def load_item(self):
-        self.add_xpath('name', "./@title")
-        self.add_xpath('name', ".//text()")
-        self.add_xpath('code', ".//text()")
-        self.add_xpath('url', "./@href")
-        return super(LinkTagLoader, self).load_item()
-
-
-class ImageTagLoader(TagLoader):
-    """Ready-made image tag loader."""
-
-    def load_item(self):
-        self.add_xpath('name', "./@title")
-        self.add_xpath('name', "./@alt")
-        self.add_xpath('code', "./@src")
-        return super(ImageTagLoader, self).load_item()
-
-
 class RequestLoader(ItemLoader):
 
     default_item_class = Request
@@ -91,12 +59,3 @@ class RequestLoader(ItemLoader):
 
     url_in = AbsolutizeUrls()
     method_in = MapCompose(string.upper)
-
-    def load_item(self):
-        crawler = Crawler(self.selector)
-        for request in crawler.requests(self.context.get('response')):
-            self.add_value('url', request.url)
-            self.add_value('method', request.method)
-            self.add_value('data', request.body)
-            break
-        return super(RequestLoader, self).load_item()

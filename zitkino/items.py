@@ -41,3 +41,4 @@ class Showtime(Film):
     prices = Field()
     tags = Field()
     booking = Field()
+    min_age_restriction = Field()

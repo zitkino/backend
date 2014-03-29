@@ -2,7 +2,7 @@
 
 
 from .base import BaseCinemaSpider
-from ..loaders import (TextTagLoader, RequestLoader)
+from ..parsers import TextTagParser, RequestParser
 
 
 class Spider(BaseCinemaSpider):
@@ -20,10 +20,10 @@ class Spider(BaseCinemaSpider):
         ('showtime_date', ".//td[2]/text()"),
         ('showtime_time', ".//td[3]/text()"),
         ('title', ".//td[4]//text()"),
-        ('tags', ".//td[6]", TextTagLoader),
-        ('tags', ".//td[7]", TextTagLoader),
+        ('tags', ".//td[6]", TextTagParser),
+        ('tags', ".//td[7]", TextTagParser),
         ('duration', ".//td[8]//text()"),
         ('csfd_id', "//a[contains(@href,'csfd.cz')]/@href"),
         ('prices', "./following-sibling::tr[1]/td[2]//text()"),
-        ('booking', "./following-sibling::tr[1]/td[3]//a", RequestLoader),
+        ('booking', "./following-sibling::tr[1]/td[3]//a", RequestParser),
     ]

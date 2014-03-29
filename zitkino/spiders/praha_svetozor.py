@@ -2,8 +2,8 @@
 
 
 from .base import BaseCinemaSpider
-from ..loaders import (ImageTagLoader, LinkTagLoader, TextTagLoader,
-                       RequestLoader)
+from ..parsers import (ImageTagParser, LinkTagParser, TextTagParser,
+                       RequestParser)
 
 
 class Spider(BaseCinemaSpider):
@@ -21,9 +21,9 @@ class Spider(BaseCinemaSpider):
         ('showtime_time', ".//td[@class='cas']/text()"),
         ('showtime_date',
          "./ancestor::table[1]/preceding-sibling::h2[1]//strong/text()"),
-        ('tags', ".//*[@class='cyklusArrow']/a", LinkTagLoader),
-        ('tags', ".//*[@class='film-note']/img", ImageTagLoader),
-        ('tags', "./ancestor::table[1]//th[1]", TextTagLoader),
+        ('tags', ".//*[@class='cyklusArrow']/a", LinkTagParser),
+        ('tags', ".//*[@class='film-note']/img", ImageTagParser),
+        ('tags', "./ancestor::table[1]//th[1]", TextTagParser),
     ]
 
     film = [
@@ -46,9 +46,9 @@ class Spider(BaseCinemaSpider):
          "|./preceding-sibling::tr[4]/td[@class='datum']//text()"
          "|./preceding-sibling::tr[5]/td[@class='datum']//text()"),
         ('prices', "./td[@class='vstupne']//text()"),
-        ('tags', ".//*[@class='cyklusArrow']/a", LinkTagLoader),
-        ('tags', ".//*[@class='dvd']/img", ImageTagLoader),
-        ('tags', ".//*[@class='poznamka']", TextTagLoader),
-        ('tags', ".//*[@class='sal']", TextTagLoader),
-        ('booking', "./td[@class='cas']//form", RequestLoader),
+        ('tags', ".//*[@class='cyklusArrow']/a", LinkTagParser),
+        ('tags', ".//*[@class='dvd']/img", ImageTagParser),
+        ('tags', ".//*[@class='poznamka']", TextTagParser),
+        ('tags', ".//*[@class='sal']", TextTagParser),
+        ('booking', "./td[@class='cas']//form", RequestParser),
     ]

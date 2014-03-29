@@ -20,12 +20,12 @@ class FieldDefinitions(object):
         for field in fields:
             if len(field) == 2:
                 field_name, xpath = field
-                subloader_cls = None
+                parser_cls = None
             elif len(field) == 3:
-                field_name, xpath, subloader_cls = field
+                field_name, xpath, parser_cls = field
             else:
                 raise ValueError
-            self.fields.append((field_name, xpath, subloader_cls))
+            self.fields.append((field_name, xpath, parser_cls))
 
     def __iter__(self):
         return iter(self.fields)
@@ -86,12 +86,12 @@ class BaseCinemaSpider(Spider):
     #!
     #! Field definitions are tuples of two or three items, where the first
     #! one is an attribute name, second is an XPath expression, and the last
-    #! one, optional, is a custom specialized loader class to be used to parse
+    #! one, optional, is a custom specialized parser class to be used to parse
     #! the attribute::
     #!
     #!    calendar_showtime = [
     #!        ('title', ".//h1|.//h2")
-    #!        ('booking', ".//form", BookingLoader)
+    #!        ('booking', ".//form", RequestParser)
     #!        ...
     #!    ]
     calendar_showtime = []
@@ -230,14 +230,15 @@ class BaseCinemaSpider(Spider):
         :param fields: Field definitions.
         :type fields: :class:`FieldDefinitions`
         """
-        for field_name, xpath, subloader_cls in fields:
-            if subloader_cls is not None:
+        for field_name, xpath, parser_cls in fields:
+            if parser_cls is not None:
                 for result in loader.selector.xpath(xpath):
-                    subloader = subloader_cls(
-                        selector=result,
-                        response=loader.context.get('response')
-                    )
-                    loader.add_value(field_name, subloader.load_item())
+                    context = {
+                        k: v for (k, v) in loader.context.items()
+                        if k not in ['selector']
+                    }
+                    parser = parser_cls(result, **context)
+                    loader.add_value(field_name, parser())
             else:
                 loader.add_xpath(field_name, xpath)
 

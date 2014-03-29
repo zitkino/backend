@@ -108,41 +108,57 @@ class Crawler(object):
         self.formfilling = formfilling
         self.max_depth = max_depth
 
+        self._forms_cache = {}
+
     def _extract_url(self, selector, response):
-        for url in selector.extract():
+        result = selector.extract()
+        if isinstance(result, basestring):
+            result = [result]
+        for url in result:
             yield absolutize_url(url, response)
 
-    def _extract(self, selector, response, formdata=None):
-        formdata = formdata or {}
-        forms = [sel.extract() for sel in Selector(response).xpath('//form')]
+    def _calc_form_number(self, form, response):
+        forms = self._forms_cache.get(response)
+        if forms is None:
+            forms = [sel.extract() for sel
+                     in Selector(response).xpath('//form')]
+            self._forms_cache[response] = forms
+        return forms.index(form)
 
+    def _form_to_requests(self, selector, response, formdata=None):
+        form = selector.extract()
+
+        formnumber = self._calc_form_number(form, response)
+        formdata = formdata or {}
+
+        if self.formfilling:
+            filler = FormFiller(
+                lxml.html.fromstring(form)
+            )
+            for filling in filler.possible_fillings(formdata):
+                yield FormRequest.from_response(
+                    response, formnumber=formnumber, formdata=filling
+                )
+        else:
+            yield FormRequest.from_response(
+                response, formnumber=formnumber, formdata=formdata
+            )
+
+    def _extract(self, selector, response, formdata=None):
         for sel in selector:
             tag = tag_name(sel)
 
             if not tag:
-                url = self._extract_url(sel, response)
-                yield Request(url)
+                for url in self._extract_url(sel, response):
+                    yield Request(url)
 
             elif tag == 'a':
                 for url in self._extract_url(sel.xpath("./@href"), response):
                     yield Request(url, response)
 
             elif tag == 'form':
-                form = sel.extract()
-                no = forms.index(form)
-
-                if self.formfilling:
-                    filler = FormFiller(
-                        lxml.html.fromstring(form)
-                    )
-                    for filling in filler.possible_fillings(formdata):
-                        yield FormRequest.from_response(
-                            response, formnumber=no, formdata=filling
-                        )
-                else:
-                    yield FormRequest.from_response(
-                        response, formnumber=no, formdata=formdata
-                    )
+                for request in self._form_to_requests(sel, response, formdata):
+                    yield request
 
             else:
                 raise ValueError("Invalid form/link tag: {}".format(tag))
