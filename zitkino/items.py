@@ -1,6 +1,8 @@
 # -*- coding: utf-8 -*-
 
 
+from pprint import pformat
+
 from scrapy.item import Item, Field
 
 
@@ -31,14 +33,15 @@ class Film(Item):
 
 
 class Showtime(Film):
-    showtime_day = Field()
-    showtime_month = Field()
     showtime_date = Field()
+    showtime_dates = Field()
     showtime_time = Field()
-    showtime_year = Field()
-    showtime_datetime = Field()
     calendar_url = Field()
+    calendar_html = Field()
     prices = Field()
     tags = Field()
     booking = Field()
     min_age_restriction = Field()
+
+    def __repr__(self):
+        return pformat(dict(self, calendar_html='...'))

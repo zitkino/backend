@@ -4,8 +4,10 @@
 import re
 import decimal
 from os import path
+from datetime import datetime, date, time, timedelta
 
-from .utils import absolutize_url
+from .names import MonthNames
+from .utils import absolutize_url, now
 
 
 class NormalizeSpace(object):
@@ -24,7 +26,7 @@ class NormalizeSpace(object):
                 yield value
 
 
-class ToTagCodes(object):
+class TagCodes(object):
 
     def __call__(self, values):
         for value in values:
@@ -36,7 +38,7 @@ class ToTagCodes(object):
                 yield value
 
 
-class ToNumbers(object):
+class Numbers(object):
 
     def __init__(self, cls=int):
         self.cls = cls
@@ -51,17 +53,17 @@ class ToNumbers(object):
                 pass  # skip it
 
 
-class ToPrices(ToNumbers):
+class Prices(Numbers):
 
     split_re = re.compile(r'/')
 
     def __init__(self):
-        super(ToPrices, self).__init__(decimal.Decimal)
+        super(Prices, self).__init__(decimal.Decimal)
 
     def __call__(self, multivalues):
         for multivalue in multivalues:
             values = self.split_re.split(multivalue)
-            for value in super(ToPrices, self).__call__(values):
+            for value in super(Prices, self).__call__(values):
                 yield value
 
 
@@ -74,7 +76,7 @@ class AbsolutizeUrls(object):
                 yield absolutize_url(value, response)
 
 
-class ToCsfdIds(object):
+class CsfdIds(object):
 
     def __call__(self, values):
         for value in values:
@@ -84,7 +86,7 @@ class ToCsfdIds(object):
                 yield re.search(r'/film/(\d+)', value).group(1)
 
 
-class ToImdbIds(object):
+class ImdbIds(object):
 
     def __call__(self, values):
         for value in values:
@@ -94,7 +96,7 @@ class ToImdbIds(object):
                 yield re.search(r'/title/tt(\d+)', value).group(1)
 
 
-class ToYoutubeIds(object):
+class YoutubeIds(object):
 
     def __call__(self, values):
         for value in values:
@@ -108,3 +110,115 @@ class Unique(object):
 
     def __call__(self, values):
         return list(frozenset(v for v in values if v))
+
+
+class Months(Numbers):
+
+    months = MonthNames()
+
+    def __init__(self):
+        super(Months, self).__init__()
+
+    def __call__(self, values):
+        months = []
+        for value in values:
+            try:
+                value = self.months.parse(value)
+            except (TypeError, ValueError):
+                pass
+            months.append(value)
+        return super(Months, self).__call__(months)
+
+
+class Dates(object):
+
+    formats = (
+        '%d.%m.%Y',
+        '%d.%m.%y',
+        '%d.%m.',
+    )
+
+    months = MonthNames()
+
+    def __init__(self, year=None):
+        self.year = year or now().year
+
+    def _date_string(self, value):
+        value = self.months.replace(value)
+        return re.sub(r'[^\d\.]', '', value)
+
+    def __call__(self, values):
+        for value in values:
+            if isinstance(value, date):
+                yield value
+                continue
+            if isinstance(value, datetime):
+                yield value.date()
+                continue
+
+            value = self._date_string(value)
+            for fmt in self.formats:
+                try:
+                    dt = datetime.strptime(value, fmt)
+                except ValueError:
+                    pass
+                else:
+                    if dt.year <= 1900:
+                        dt = dt.replace(year=self.year)
+                    yield dt.date()
+                    break
+
+
+class DateRanges(object):
+
+    def _range(self, start, end):
+        d = start
+        yield d
+        while d != end:
+            d += timedelta(days=1)
+            yield d
+
+    def __call__(self, values):
+        to_dates = Dates(year=1)
+
+        for value in values:
+            start, end = list(to_dates(value.split('-')))
+
+            if end.year <= 1900:
+                end = end.replace(year=now().year)
+            if start.year <= 1900:
+                start = start.replace(year=end.year)
+
+            for d in self._range(start, end):
+                yield d
+
+
+class Times(object):
+
+    formats = (
+        '%H:%M:%S',
+        '%H:%M',
+        '%H.%M',
+    )
+
+    def _time_string(self, value):
+        return re.sub(r'[^\d\.\:]', '', value)
+
+    def __call__(self, values):
+        for value in values:
+            if isinstance(value, time):
+                yield value
+                continue
+            if isinstance(value, datetime):
+                yield value.time()
+                continue
+
+            value = self._time_string(value)
+            for fmt in self.formats:
+                try:
+                    dt = datetime.strptime(value, fmt)
+                except ValueError:
+                    pass
+                else:
+                    yield dt.time()
+                    break

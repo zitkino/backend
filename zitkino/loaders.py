@@ -8,9 +8,9 @@ from scrapy.contrib.loader.processor import (TakeFirst, Compose, Join,
                                              MapCompose)
 
 from .items import Showtime, Film, Tag, Request
-from .processors import (NormalizeSpace, Unique, AbsolutizeUrls, ToCsfdIds,
-                         ToNumbers, ToImdbIds, ToYoutubeIds, ToTagCodes,
-                         ToPrices)
+from .processors import (NormalizeSpace, Unique, AbsolutizeUrls, CsfdIds,
+                         Numbers, ImdbIds, YoutubeIds, TagCodes,
+                         Prices, Dates, Times)
 
 
 class FilmLoader(ItemLoader):
@@ -19,11 +19,11 @@ class FilmLoader(ItemLoader):
     default_output_processor = Compose(NormalizeSpace(), TakeFirst())
 
     film_url_in = AbsolutizeUrls()
-    csfd_id_in = ToCsfdIds()
-    imdb_id_in = ToImdbIds()
-    youtube_id_in = ToYoutubeIds()
-    year_in = ToNumbers()
-    duration_in = ToNumbers()
+    csfd_id_in = CsfdIds()
+    imdb_id_in = ImdbIds()
+    youtube_id_in = YoutubeIds()
+    year_in = Numbers()
+    duration_in = Numbers()
     poster_urls_in = AbsolutizeUrls()
     info_in = Join(' ')
     description_in = Join(' ')
@@ -36,9 +36,14 @@ class ShowtimeLoader(FilmLoader):
     default_item_class = Showtime
     default_output_processor = Compose(NormalizeSpace(), TakeFirst())
 
+    showtime_date_in = Compose(NormalizeSpace(), Dates())
+    showtime_dates_in = Compose(NormalizeSpace(), Dates())
+    showtime_time_in = Compose(NormalizeSpace(), Times())
     calendar_url_in = AbsolutizeUrls()
-    prices_in = ToPrices()
+    prices_in = Prices()
+    min_age_restriction_in = Numbers()
 
+    showtime_dates_out = Unique()
     tags_out = Unique()
     prices_out = Unique()
 
@@ -48,7 +53,7 @@ class TagLoader(ItemLoader):
     default_item_class = Tag
     default_output_processor = Compose(NormalizeSpace(), TakeFirst())
 
-    code_in = ToTagCodes()
+    code_in = TagCodes()
     url_in = AbsolutizeUrls()
 
 
