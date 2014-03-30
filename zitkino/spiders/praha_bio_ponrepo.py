@@ -29,7 +29,7 @@ class Spider(BaseCinemaSpider):
         ('film_url', ".//a/@href"),
         ('showtime_time', ".//td[1]//text()"),
         ('showtime_date', ".//th[2]//text()"),
-        ('tags', "./following-sibling::tr[1]//td[3]//a", LinkTagParser),
+        ('tags', "./following-sibling::tr[1]//td[3]//a", LinkTagParser()),
         ('info', "./following-sibling::tr[1]//td[3]//text()"),
     ]
 

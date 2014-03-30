@@ -86,12 +86,12 @@ class BaseCinemaSpider(Spider):
     #!
     #! Field definitions are tuples of two or three items, where the first
     #! one is an attribute name, second is an XPath expression, and the last
-    #! one, optional, is a custom specialized parser class to be used to parse
+    #! one, optional, is a custom specialized parser to be used to parse
     #! the attribute::
     #!
     #!    calendar_showtime = [
     #!        ('title', ".//h1|.//h2")
-    #!        ('booking', ".//form", RequestParser)
+    #!        ('booking', ".//form", RequestParser())
     #!        ...
     #!    ]
     calendar_showtime = []
@@ -163,6 +163,7 @@ class BaseCinemaSpider(Spider):
         for selector in showtimes:
             loader = ShowtimeLoader(selector=selector, response=response)
             loader.add_value('calendar_url', response.url)
+            loader.add_value('calendar_html', response.body)
             self._populate_loader(loader, self.get_calendar_showtime())
             item = loader.load_item()
 
@@ -199,8 +200,8 @@ class BaseCinemaSpider(Spider):
         self._populate_loader(loader, self.get_film())
         yield loader.load_item()
 
-        for showtime in self._parse_subcalendar(response):
-            yield showtime
+        for item in self._parse_subcalendar(response):
+            yield item
 
     def _parse_subcalendar(self, response):
         """Parses possible subcalendars on film's detail page.
@@ -216,9 +217,10 @@ class BaseCinemaSpider(Spider):
             return
         showtimes = subcalendars.xpath(self.subcalendar_showtime_element)
 
-        for showtime in showtimes:
-            loader = ShowtimeLoader(selector=showtime, response=response)
+        for selector in showtimes:
+            loader = ShowtimeLoader(selector=selector, response=response)
             loader.add_value('calendar_url', response.url)
+            loader.add_value('calendar_html', response.body)
             self._populate_loader(loader, self.get_subcalendar_showtime())
             yield loader.load_item()
 
@@ -230,15 +232,14 @@ class BaseCinemaSpider(Spider):
         :param fields: Field definitions.
         :type fields: :class:`FieldDefinitions`
         """
-        for field_name, xpath, parser_cls in fields:
-            if parser_cls is not None:
-                for result in loader.selector.xpath(xpath):
-                    context = {
-                        k: v for (k, v) in loader.context.items()
-                        if k not in ['selector']
-                    }
-                    parser = parser_cls(result, **context)
-                    loader.add_value(field_name, parser())
+        selector = loader.selector
+        response = loader.context.get('response')
+
+        for field_name, xpath, parser in fields:
+            if parser is not None:
+                for result in selector.xpath(xpath):
+                    for value in parser(result, response):
+                        loader.add_value(field_name, value)
             else:
                 loader.add_xpath(field_name, xpath)
 
