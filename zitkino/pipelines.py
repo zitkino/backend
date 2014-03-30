@@ -1,10 +1,12 @@
-# Define your item pipelines here
-#
-# Don't forget to add your pipeline to the ITEM_PIPELINES setting
-# See: http://doc.scrapy.org/en/latest/topics/item-pipeline.html
+# -*- coding: utf-8 -*-
 
 
-class ZitkinoPipeline(object):
+from scrapy.exceptions import DropItem
+
+
+class DropIncompletePipeline(object):
 
     def process_item(self, item, spider):
+        if not item.get('title'):
+            raise DropItem("Missing title.")
         return item
