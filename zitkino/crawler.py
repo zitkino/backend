@@ -111,10 +111,10 @@ class Crawler(object):
         self._forms_cache = {}
 
     def _extract_url(self, selector, response):
-        result = selector.extract()
-        if isinstance(result, basestring):
-            result = [result]
-        for url in result:
+        results = selector.extract()
+        if isinstance(results, basestring):
+            results = [results]
+        for url in results:
             yield absolutize_url(url, response)
 
     def _calc_form_number(self, form, response):
