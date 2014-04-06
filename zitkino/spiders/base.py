@@ -8,7 +8,6 @@ from scrapy.spider import Spider
 from scrapy.selector import Selector
 
 from ..crawler import Crawler
-from ..utils import absolutize_url
 from ..loaders import ShowtimeLoader
 
 
@@ -17,15 +16,24 @@ class FieldDefinitions(object):
 
     def __init__(self, fields):
         self.fields = []
-        for field in fields:
-            if len(field) == 2:
-                field_name, xpath = field
-                parser_cls = None
-            elif len(field) == 3:
-                field_name, xpath, parser_cls = field
-            else:
-                raise ValueError
-            self.fields.append((field_name, xpath, parser_cls))
+        self.extend(fields)
+
+    def _parse_definition(self, definition):
+        if len(definition) == 2:
+            field_name, xpath = definition
+            parser_cls = None
+        elif len(definition) == 3:
+            field_name, xpath, parser_cls = definition
+        else:
+            raise ValueError
+        return (field_name, xpath, parser_cls)
+
+    def append(self, definition):
+        self.fields.append(self._parse_definition(definition))
+
+    def extend(self, definitions):
+        for definition in definitions:
+            self.append(definition)
 
     def __iter__(self):
         return iter(self.fields)
@@ -162,31 +170,22 @@ class BaseCinemaSpider(Spider):
 
         for selector in showtimes:
             loader = ShowtimeLoader(selector=selector, response=response)
-            loader.add_value('calendar_url', response.url)
-            loader.add_value('calendar_html', response.body)
-            self._populate_loader(loader, self.get_calendar_showtime())
+            self.parse_calendar_showtime(loader, response)
             item = loader.load_item()
 
-            for rv in self._follow_film_url(response, selector, item):
+            for rv in self._follow_film_url(item):
                 yield rv
 
-    def _follow_film_url(self, response, selector, item):
+    def _follow_film_url(self, item):
         """Follows the ``film_url`` in order to parse film's detail page.
 
-        :param response: Currently processed response.
-        :type response: :class:`scrapy.http.Response`
-        :param selector: Showtime selector.
-        :type selector: :class:`scrapy.selector.Selector`
         :param item: Showtime item.
         :type item: :class:`scrapy.item.Item`
         """
-        xpath = self.get_calendar_showtime().get_xpath('film_url')
-        if xpath:
-            film_urls = (absolutize_url(url, response) for url
-                         in selector.xpath(xpath).extract())
-            for url in film_urls:
-                yield Request(url, callback=self._parse_film,
-                              meta={'item': item})
+        url = item.get('film_url')
+        if url:
+            yield Request(url, callback=self._parse_film, meta={'item': item},
+                          dont_filter=True)
         else:
             yield item
 
@@ -197,7 +196,7 @@ class BaseCinemaSpider(Spider):
         :type response: :class:`scrapy.http.Response`
         """
         loader = ShowtimeLoader(item=response.meta['item'], response=response)
-        self._populate_loader(loader, self.get_film())
+        self.parse_film(loader, response)
         yield loader.load_item()
 
         for item in self._parse_subcalendar(response):
@@ -219,9 +218,7 @@ class BaseCinemaSpider(Spider):
 
         for selector in showtimes:
             loader = ShowtimeLoader(selector=selector, response=response)
-            loader.add_value('calendar_url', response.url)
-            loader.add_value('calendar_html', response.body)
-            self._populate_loader(loader, self.get_subcalendar_showtime())
+            self.parse_subcalendar_showtime(loader, response)
             yield loader.load_item()
 
     def _populate_loader(self, loader, fields):
@@ -258,8 +255,23 @@ class BaseCinemaSpider(Spider):
         some more field definitions are added (implementing *smart defaults*
         for various fields) and this is returned as a
         :class:`FieldDefinitions` object.
+
+        :param response: Currently processed response.
+        :type response: :class:`scrapy.http.Response`
         """
         return FieldDefinitions(self.calendar_showtime)
+
+    def parse_calendar_showtime(self, loader, response):
+        """Calendar showtime parser.
+
+        :param loader: Loader object.
+        :type loader: :class:`scrapy.contrib.loader.ItemLoader`
+        :param response: Currently processed response.
+        :type response: :class:`scrapy.http.Response`
+        """
+        loader.add_value('calendar_url', response.url)
+        loader.add_value('calendar_html', response.body)
+        self._populate_loader(loader, self.get_calendar_showtime())
 
     def get_film(self):
         """Getter providing film detail field definitions.
@@ -267,6 +279,9 @@ class BaseCinemaSpider(Spider):
         The same applies as for
         :meth:`~BaseCinemaSpider.get_calendar_showtime`, only
         :obj:`~BaseCinemaSpider.film` is taken by default.
+
+        :param response: Currently processed response.
+        :type response: :class:`scrapy.http.Response`
         """
         return FieldDefinitions(self.film + [
             ('csfd_id', "//a[contains(@href, 'csfd.cz')]/@href"),
@@ -274,11 +289,36 @@ class BaseCinemaSpider(Spider):
             ('youtube_id', "//a[contains(@href, 'youtube.com')]/@href"),
         ])
 
+    def parse_film(self, loader, response):
+        """Film parser.
+
+        :param loader: Loader object.
+        :type loader: :class:`scrapy.contrib.loader.ItemLoader`
+        :param response: Currently processed response.
+        :type response: :class:`scrapy.http.Response`
+        """
+        self._populate_loader(loader, self.get_film())
+
     def get_subcalendar_showtime(self):
         """Getter providing subcalendar showtime field definitions.
 
         The same applies as for
         :meth:`~BaseCinemaSpider.get_calendar_showtime`, only
         :obj:`~BaseCinemaSpider.subcalendar_showtime` is taken by default.
+
+        :param response: Currently processed response.
+        :type response: :class:`scrapy.http.Response`
         """
         return FieldDefinitions(self.subcalendar_showtime)
+
+    def parse_subcalendar_showtime(self, loader, response):
+        """Subcalendar showtime parser.
+
+        :param loader: Loader object.
+        :type loader: :class:`scrapy.contrib.loader.ItemLoader`
+        :param response: Currently processed response.
+        :type response: :class:`scrapy.http.Response`
+        """
+        loader.add_value('calendar_url', response.url)
+        loader.add_value('calendar_html', response.body)
+        self._populate_loader(loader, self.get_subcalendar_showtime())

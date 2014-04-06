@@ -6,7 +6,7 @@ import urlparse
 from itertools import combinations, product, chain
 
 import lxml.html
-from scrapy.selector import Selector
+from scrapy.selector import Selector, SelectorList
 from scrapy.http import Request, FormRequest as BaseFormRequest
 
 from .utils import absolutize_url, tag_name
@@ -98,8 +98,11 @@ class FormRequest(BaseFormRequest):
 class Crawler(object):
 
     def __init__(self, xpath_or_selector, formfilling=False, max_depth=10):
-        if isinstance(xpath_or_selector, Selector):
+        if isinstance(xpath_or_selector, SelectorList):
             self.selector = xpath_or_selector
+            self.xpath = None
+        if isinstance(xpath_or_selector, Selector):
+            self.selector = SelectorList([xpath_or_selector])
             self.xpath = None
         else:
             self.selector = None
@@ -169,7 +172,7 @@ class Crawler(object):
             return
 
         if self.selector:
-            selector = self.selector.xpath('.')
+            selector = self.selector
         else:
             selector = Selector(response).xpath(self.xpath)
 

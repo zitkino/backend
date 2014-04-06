@@ -13,3 +13,6 @@ ROBOTSTXT_OBEY = True
 ITEM_PIPELINES = {
     'zitkino.pipelines.DropIncompletePipeline': 100,
 }
+
+HTTPCACHE_ENABLED = True
+HTTPCACHE_DIR = '/tmp/zitkino-cache'

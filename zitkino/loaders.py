@@ -39,11 +39,13 @@ class ShowtimeLoader(FilmLoader):
     showtime_date_in = Compose(NormalizeSpace(), Dates())
     showtime_dates_in = Compose(NormalizeSpace(), Dates())
     showtime_time_in = Compose(NormalizeSpace(), Times())
+    showtime_times_in = Compose(NormalizeSpace(), Times())
     calendar_url_in = AbsolutizeUrls()
     prices_in = Prices()
     min_age_restriction_in = Numbers()
 
     showtime_dates_out = Unique()
+    showtime_times_out = Unique()
     tags_out = Unique()
     prices_out = Unique()
 

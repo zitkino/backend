@@ -83,7 +83,9 @@ class CsfdIds(object):
             if re.match(r'\d+$', value):
                 yield value
             else:
-                yield re.search(r'/film/(\d+)', value).group(1)
+                match = re.search(r'/film/(\d+)', value)
+                if match:
+                    yield match.group(1)
 
 
 class ImdbIds(object):
