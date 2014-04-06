@@ -3,7 +3,7 @@
 
 from ..javascript import JavaScript
 from .base import BaseCinemaSpider, FieldDefinitions
-from ..parsers import (TextTagParser, RequestParser)
+from ..parsers import TextTagParser, RequestParser, ImageTagParser
 
 
 class BaseCinestarCinemaSpider(BaseCinemaSpider):
@@ -28,6 +28,9 @@ class BaseCinestarCinemaSpider(BaseCinemaSpider):
         ('tags',
          "./ancestor::table[1]/preceding-sibling::*[.//h3]//h3",
          TextTagParser()),
+        ('tags',
+         "./ancestor::table[1]/preceding-sibling::*[.//h3]//h3//img",
+         ImageTagParser()),
         ('min_age_restriction',
          "./ancestor::tr[1]//td[@class='age'][2]//text()"),
     ]
