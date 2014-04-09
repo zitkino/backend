@@ -25,10 +25,11 @@ class FilmLoader(ItemLoader):
     year_in = Numbers()
     duration_in = Numbers()
     poster_urls_in = AbsolutizeUrls()
-    info_in = Join(' ')
-    description_in = Join(' ')
+    release_date_in = Compose(NormalizeSpace(), Dates())
 
     poster_urls_out = Unique()
+    info_out = Compose(NormalizeSpace(), Join(' '))
+    description_out = Compose(NormalizeSpace(), Join(' '))
 
 
 class ShowtimeLoader(FilmLoader):

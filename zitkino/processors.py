@@ -104,6 +104,11 @@ class YoutubeIds(object):
         for value in values:
             if re.search(r'youtube\.com/v/', value):
                 yield re.search(r'youtube\.com/v/(.+)$', value).group(1)
+
+            if re.search(r'youtube\.com/embed/', value):
+                match = re.search(r'youtube\.com/embed/([^\?\&\'\"]+)', value)
+                yield match.group(1)
+
             else:
                 raise NotImplementedError
 
@@ -137,7 +142,10 @@ class Dates(object):
     formats = (
         '%d.%m.%Y',
         '%d.%m.%y',
+        '%d/%m/%Y',
+        '%d/%m/%y',
         '%d.%m.',
+        '%d/%m',
     )
 
     months = MonthNames()
@@ -147,7 +155,7 @@ class Dates(object):
 
     def _date_string(self, value):
         value = self.months.replace(value)
-        return re.sub(r'[^\d\.]', '', value)
+        return re.sub(r'[^\d\.\/]', '', value)
 
     def __call__(self, values):
         for value in values:

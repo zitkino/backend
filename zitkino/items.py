@@ -30,6 +30,7 @@ class Film(Item):
     description = Field()
     duration = Field()
     poster_urls = Field()
+    release_date = Field()
 
 
 class Showtime(Film):
