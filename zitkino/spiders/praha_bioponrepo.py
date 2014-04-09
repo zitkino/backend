@@ -9,7 +9,7 @@ from ..parsers import LinkTagParser
 
 class Spider(BaseCinemaSpider):
 
-    name = 'praha-bio-ponrepo'
+    name = 'praha-bioponrepo'
     calendar_url = 'http://www.bio-ponrepo.cz/program.html'
     calendar_next = ".//*[@class='programme']/form"
 
