@@ -287,6 +287,7 @@ class BaseCinemaSpider(Spider):
             ('csfd_id', "//a[contains(@href, 'csfd.cz')]/@href"),
             ('imdb_id', "//a[contains(@href, 'imdb.com')]/@href"),
             ('youtube_id', "//a[contains(@href, 'youtube.com')]/@href"),
+            ('youtube_id', "//iframe[contains(@src, 'youtube.com')]/@src"),
         ])
 
     def parse_film(self, loader, response):

@@ -3,6 +3,9 @@
 
 import re
 
+from scrapy.selector import Selector, SelectorList
+
+from .utils import tag_name
 from .crawler import Crawler
 from .loaders import TagLoader, RequestLoader
 
@@ -84,3 +87,22 @@ class SwitchParser(BaseParser):
                     }
                     return f(parser_context)
         return []
+
+
+class TabLabelParser(BaseParser):
+
+    def __call__(self, selector, response):
+        if not isinstance(selector, SelectorList):
+            selector = SelectorList([selector])
+
+        for tab_sel in selector:
+            if tag_name(tab_sel):
+                ids = tab_sel.xpath('./@id').extract()
+            else:
+                ids = tab_sel.extract()
+
+            for tab_id in ids:
+                xpath = "//a[@href='#{}']//text()".format(tab_id)
+
+                for value in Selector(response).xpath(xpath).extract():
+                    yield value
