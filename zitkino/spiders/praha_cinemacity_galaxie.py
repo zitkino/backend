@@ -6,5 +6,5 @@ from .base_cinemacity import BaseCinemacityCinemaSpider
 
 class Spider(BaseCinemacityCinemaSpider):
 
-    name = 'brno-cinemacity-galaxie'
+    name = 'praha-cinemacity-galaxie'
     location_id = '1010113'
