@@ -1,1 +1,8 @@
 nodejs
+mongodb-10gen
+python-dev
+build-essential
+libxml2-dev
+libxslt1-dev
+libssl-dev
+libffi-dev
