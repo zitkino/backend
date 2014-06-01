@@ -104,6 +104,19 @@ class BaseCinemaSpider(Spider):
     #!    ]
     calendar_showtime = []
 
+    #! Main calendar legend parsers.
+    #!
+    #! Parsers are defined as mapping, where keys are XPath expressions
+    #! and values are instances of legend parsers::
+    #!
+    #!    calendar_legends = {
+    #!        "//div[@class='legend']": LegendParser(),
+    #!        ...
+    #!    }
+    #!
+    #! Tag parsers can benefit from legends.
+    calendar_legends = {}
+
     #! Film detail attributes as a list of field definitions.
     #!
     #! The same applies as for :obj:`~BaseCinemaSpider.calendar_showtime`.
@@ -168,6 +181,8 @@ class BaseCinemaSpider(Spider):
         calendars = Selector(response).xpath(self.calendar_element)
         showtimes = calendars.xpath(self.calendar_showtime_element)
 
+        self._parse_calendar_legends(response)
+
         for selector in showtimes:
             loader = ShowtimeLoader(selector=selector, response=response)
             self.parse_calendar_showtime(loader, response)
@@ -175,6 +190,22 @@ class BaseCinemaSpider(Spider):
 
             for rv in self._follow_film_url(item):
                 yield rv
+
+    def _parse_calendar_legends(self, response):
+        """Parsers tag legends and attaches the resulting tag mapping
+        to the response object as ``response.meta['legend']``. Tag parsers
+        can then benefit from such legend.
+
+        :param response: Currently processed response.
+        :type response: :class:`scrapy.http.Response`
+        """
+        if not self.calendar_legends:
+            return
+        legend = {}
+        for xpath, parser in self.calendar_legends.items():
+            selector = Selector(response).xpath(xpath)
+            legend.update(parser(selector, response))
+        response.meta['legend'] = legend
 
     def _follow_film_url(self, item):
         """Follows the ``film_url`` in order to parse film's detail page.

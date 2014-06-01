@@ -5,7 +5,7 @@ from datetime import timedelta
 
 from ..utils import now
 from .base import BaseCinemaSpider
-from ..parsers import TextTagParser
+from ..parsers import TextTagParser, TextLegendParser
 
 
 class BaseCinemacityCinemaSpider(BaseCinemaSpider):
@@ -27,6 +27,12 @@ class BaseCinemacityCinemaSpider(BaseCinemaSpider):
         ('showtime_time', "./text()"),
         ('showtime_date', "//label[@class='date']//text()"),
     ]
+
+    calendar_legends = {
+        "//*[@class='footer']": TextLegendParser(stopwords=[
+            ur'.*změna programu vyhrazena\.'
+        ])
+    }
 
     def row_xpath(label, include_label=False):
         xpath = (

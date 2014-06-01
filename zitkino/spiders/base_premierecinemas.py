@@ -3,7 +3,7 @@
 
 from .base import BaseCinemaSpider
 from ..parsers import (TabLabelParser, TextTagParser, ImageTagParser,
-                       RequestParser)
+                       RequestParser, TextLegendParser)
 
 
 class BasePremierecinemasCinemaSpider(BaseCinemaSpider):
@@ -22,6 +22,13 @@ class BasePremierecinemasCinemaSpider(BaseCinemaSpider):
         ('tags', "./ancestor::tr[1]//td[3]", TextTagParser()),
         ('tags', "./ancestor::tr[1]//td[1]//img", ImageTagParser()),
     ]
+    calendar_legends = {
+        "//*[@class='ps-program-help-info-main']": TextLegendParser(
+            mapping_sep='=', stopwords=[
+                ur'.*informace.*', ur'.*změna programu.*'
+            ]
+        )
+    }
 
     film = [
         ('title', "//h1//text()"),
