@@ -2,6 +2,7 @@
 
 
 import string
+import inspect
 
 from scrapy.contrib.loader import ItemLoader
 from scrapy.contrib.loader.processor import (TakeFirst, Compose, Join,
@@ -11,6 +12,17 @@ from .items import Showtime, Film, Tag, Request
 from .processors import (NormalizeSpace, Unique, AbsolutizeUrls, CsfdIds,
                          Numbers, ImdbIds, YoutubeIds, TagCodes,
                          Prices, Dates, Times)
+
+
+def _call_processor(processor, values, loader_context):
+    if hasattr(processor, '__call__'):
+        needs_ctx = len(inspect.getargspec(processor.__call__).args) > 2
+    else:
+        needs_ctx = len(inspect.getargspec(processor).args) > 1
+
+    if needs_ctx:
+        return processor(values, loader_context)
+    return processor(values)
 
 
 class FilmLoader(ItemLoader):
@@ -58,6 +70,22 @@ class TagLoader(ItemLoader):
 
     code_in = TagCodes()
     url_in = AbsolutizeUrls()
+
+    def lookup_legend(self, xpath, processor=None):
+        response = self.context.get('response')
+        if not response:
+            return None
+
+        legend = response.meta.get('legend')
+        if not legend:
+            return None
+
+        data = self.selector.xpath(xpath).extract()
+        if processor:
+            data = _call_processor(processor, data, self.context)
+
+        value = self.default_output_processor(data)
+        return legend.get(value)
 
 
 class RequestLoader(ItemLoader):

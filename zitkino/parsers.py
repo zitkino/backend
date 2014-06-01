@@ -8,9 +8,9 @@ import lxml.html
 from scrapy.selector import Selector, SelectorList
 
 from .crawler import Crawler
-from .processors import NormalizeSpace
 from .utils import tag_name, absolutize_url
 from .loaders import TagLoader, RequestLoader
+from .processors import NormalizeSpace, AbsolutizeUrls
 
 
 class BaseParser(object):
@@ -19,35 +19,109 @@ class BaseParser(object):
         raise NotImplementedError
 
 
-class TextTagParser(BaseParser):
+class BaseTagParser(BaseParser):
 
     def __call__(self, selector, response):
         loader = TagLoader(selector=selector, response=response)
+        self.load(loader)
+
+        header = self.parse_column_header(selector, response)
+        if header:
+            loader.add_value('type', header.get('name'))
+            loader.add_value('url', header.get('url'))
+        yield loader.load_item()
+
+    def parse_column_header(self, selector, response):
+        td = selector.xpath("./ancestor-or-self::td[1]")
+        header = selector.xpath("./ancestor-or-self::table[1]//tr[th]")
+        if not td or not header:
+            return None
+
+        position = len(td.xpath("./preceding-sibling::td"))
+        th = header.xpath('th[{}]'.format(position + 1))
+
+        parser = TagParser()
+        try:
+            return next(parser(selector=th, response=response))
+        except StopIteration:
+            return None
+
+    def load(self, loader):
+        raise NotImplementedError
+
+
+class TagParser(BaseTagParser):
+
+    def __call__(self, selector, response):
+        loader = TagLoader(selector=selector, response=response)
+        for item in self.parse_items(selector, response):
+            loader.add_value('name', item.get('name'))
+            loader.add_value('code', item.get('code'))
+            loader.add_value('url', item.get('url'))
+            loader.add_value('type', item.get('type'))
+        yield loader.load_item()
+
+    def parse_items(self, selector, response):
+        jobs = []
+        if selector.xpath("./self::img"):
+            jobs.append((selector, ImageTagParser))
+            link = selector.xpath("./parent::a")
+            if link:
+                jobs.append((link, LinkTagParser))
+
+        elif selector.xpath("./self::a"):
+            jobs.append((selector, LinkTagParser))
+            img = selector.xpath("./descendant::img")
+            if img:
+                jobs.append((img, ImageTagParser))
+
+        else:
+            jobs.append((selector, TextTagParser))
+
+        for sel, parser in jobs:
+            for item in parser()(selector=sel, response=response):
+                yield item
+
+
+class TextTagParser(BaseTagParser):
+
+    def load(self, loader):
+        name = loader.lookup_legend('.//text()')
+        if name:
+            loader.add_value('name', name)
+            loader.add_xpath('code', "./@title")
+
         loader.add_xpath('name', "./@title")
         loader.add_xpath('name', ".//text()")
         loader.add_xpath('code', ".//text()")
-        yield loader.load_item()
 
 
-class LinkTagParser(BaseParser):
+class LinkTagParser(BaseTagParser):
 
-    def __call__(self, selector, response):
-        loader = TagLoader(selector=selector, response=response)
+    def load(self, loader):
+        name = loader.lookup_legend('./@href', processor=AbsolutizeUrls())
+        if name:
+            loader.add_value('name', name)
+            loader.add_xpath('code', "./@title")
+
         loader.add_xpath('name', "./@title")
         loader.add_xpath('name', ".//text()")
         loader.add_xpath('code', ".//text()")
         loader.add_xpath('url', "./@href")
-        yield loader.load_item()
 
 
-class ImageTagParser(BaseParser):
+class ImageTagParser(BaseTagParser):
 
-    def __call__(self, selector, response):
-        loader = TagLoader(selector=selector, response=response)
+    def load(self, loader):
+        name = loader.lookup_legend('./@src', processor=AbsolutizeUrls())
+        if name:
+            loader.add_value('name', name)
+            loader.add_xpath('code', "./@title")
+            loader.add_xpath('code', "./@alt")
+
         loader.add_xpath('name', "./@title")
         loader.add_xpath('name', "./@alt")
         loader.add_xpath('code', "./@src")
-        yield loader.load_item()
 
 
 class RequestParser(BaseParser):
@@ -111,7 +185,7 @@ class TabLabelParser(BaseParser):
                     yield value
 
 
-class TextLegendParser(BaseParser):
+class LegendParser(BaseParser):
 
     key_tags = ['br', 'strong', 'img']
 

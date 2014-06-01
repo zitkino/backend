@@ -33,9 +33,7 @@ class TagCodes(object):
             if value.lower().endswith(('jpg', 'jpeg', 'png', 'gif')):
                 value = path.splitext(path.basename(value))[0]
                 value = value.upper().replace('_', '-')
-
-            if value and value.upper() == value and len(value) < 5:
-                yield value
+            yield value
 
 
 class Numbers(object):

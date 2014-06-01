@@ -2,8 +2,7 @@
 
 
 from .base import BaseCinemaSpider
-from ..parsers import (TabLabelParser, TextTagParser, ImageTagParser,
-                       RequestParser, TextLegendParser)
+from ..parsers import TabLabelParser, TagParser, RequestParser, LegendParser
 
 
 class BasePremierecinemasCinemaSpider(BaseCinemaSpider):
@@ -19,11 +18,11 @@ class BasePremierecinemasCinemaSpider(BaseCinemaSpider):
          "./ancestor::div[contains(@id, 'tab')]", TabLabelParser()),
         ('min_age_restriction', "./ancestor::tr[1]//td[2]//text()"),
         ('film_url', "./ancestor::tr[1]//td[1]//a[1]/@href"),
-        ('tags', "./ancestor::tr[1]//td[3]", TextTagParser()),
-        ('tags', "./ancestor::tr[1]//td[1]//img", ImageTagParser()),
+        ('tags', "./ancestor::tr[1]//td[3]", TagParser()),
+        ('tags', "./ancestor::tr[1]//td[1]//img", TagParser()),
     ]
     calendar_legends = {
-        "//*[@class='ps-program-help-info-main']": TextLegendParser(
+        "//*[@class='ps-program-help-info-main']": LegendParser(
             mapping_sep='=', stopwords=[
                 ur'.*informace.*', ur'.*změna programu.*'
             ]
@@ -46,8 +45,8 @@ class BasePremierecinemasCinemaSpider(BaseCinemaSpider):
         ('showtime_time', ".//text()"),
         ('showtime_date', "./ancestor::tr[1]//td[1]//text()"),
         ('min_age_restriction', "./ancestor::tr[1]//td[2]//text()"),
-        ('tags', "./ancestor::tr[1]//td[3]", TextTagParser()),
-        ('tags', "./ancestor::tr[1]//td[4]", TextTagParser()),
-        ('tags', "./ancestor::tr[1]//td[4]//img", ImageTagParser()),
+        ('tags', "./ancestor::tr[1]//td[3]", TagParser()),
+        ('tags', "./ancestor::tr[1]//td[4]", TagParser()),
+        ('tags', "./ancestor::tr[1]//td[4]//img", TagParser()),
         ('booking', ".", RequestParser()),
     ]

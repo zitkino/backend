@@ -10,6 +10,7 @@ class Tag(Item):
     name = Field()
     code = Field()
     url = Field()
+    type = Field()
 
 
 class Request(Item):

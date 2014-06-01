@@ -188,7 +188,7 @@ class BaseCinemaSpider(Spider):
             self.parse_calendar_showtime(loader, response)
             item = loader.load_item()
 
-            for rv in self._follow_film_url(item):
+            for rv in self._follow_film_url(item, response):
                 yield rv
 
     def _parse_calendar_legends(self, response):
@@ -207,16 +207,22 @@ class BaseCinemaSpider(Spider):
             legend.update(parser(selector, response))
         response.meta['legend'] = legend
 
-    def _follow_film_url(self, item):
+    def _follow_film_url(self, item, response):
         """Follows the ``film_url`` in order to parse film's detail page.
 
         :param item: Showtime item.
         :type item: :class:`scrapy.item.Item`
+        :param response: Currently processed response.
+        :type response: :class:`scrapy.http.Response`
         """
         url = item.get('film_url')
         if url:
-            yield Request(url, callback=self._parse_film, meta={'item': item},
-                          dont_filter=True)
+            yield Request(
+                url,
+                callback=self._parse_film,
+                meta={'item': item, 'legend': response.meta.get('legend')},
+                dont_filter=True
+            )
         else:
             yield item
 

@@ -2,8 +2,8 @@
 
 
 from ..javascript import JavaScript
+from ..parsers import TagParser, RequestParser
 from .base import BaseCinemaSpider, FieldDefinitions
-from ..parsers import TextTagParser, RequestParser, ImageTagParser
 
 
 class BaseCinestarCinemaSpider(BaseCinemaSpider):
@@ -21,16 +21,18 @@ class BaseCinestarCinemaSpider(BaseCinemaSpider):
         ('showtime_date',
          "//form[@id='day-chooser']//option[@selected]/text()"),
         ('tags',
-         "./ancestor::tr[1]//td[@class='hall']", TextTagParser()),
+         "./ancestor::tr[1]//td[@class='hall']",
+         TagParser()),
         ('tags',
          ("./ancestor::tr[1]//td[@class='age'][1]"
-          "//span[contains(@style, 'normal')]"), TextTagParser()),
+          "//span[contains(@style, 'normal')]"),
+         TagParser()),
         ('tags',
          "./ancestor::table[1]/preceding-sibling::*[.//h3]//h3",
-         TextTagParser()),
+         TagParser()),
         ('tags',
          "./ancestor::table[1]/preceding-sibling::*[.//h3]//h3//img",
-         ImageTagParser()),
+         TagParser()),
         ('min_age_restriction',
          "./ancestor::tr[1]//td[@class='age'][2]//text()"),
     ]
@@ -75,5 +77,7 @@ class BaseCinestarCinemaSpider(BaseCinemaSpider):
                 else:
                     loader.add_value(field_name, result.extract())
 
-        super(BaseCinestarCinemaSpider, self).parse_calendar_showtime(loader,
-                                                                      response)
+        super(BaseCinestarCinemaSpider, self).parse_calendar_showtime(
+            loader,
+            response
+        )

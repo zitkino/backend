@@ -5,7 +5,7 @@ from datetime import timedelta
 
 from ..utils import now
 from .base import BaseCinemaSpider
-from ..parsers import TextTagParser, TextLegendParser
+from ..parsers import TagParser, LegendParser
 
 
 class BaseCinemacityCinemaSpider(BaseCinemaSpider):
@@ -20,16 +20,16 @@ class BaseCinemacityCinemaSpider(BaseCinemaSpider):
         ('film_url', "./ancestor::tr[1]//td[@class='featureName']//a/@href"),
         ('min_age_restriction',
          "./ancestor::tr[1]//td[@class='rating']//text()"),
-        ('tags', "./ancestor::tr[1]//td[3]", TextTagParser()),
+        ('tags', "./ancestor::tr[1]//td[3]", TagParser()),
         ('tags',
-         "./ancestor::tr[1]//td[4][not(contains(., '---'))]", TextTagParser()),
+         "./ancestor::tr[1]//td[4][not(contains(., '---'))]", TagParser()),
         ('duration', "./ancestor::tr[1]//td[5]"),
         ('showtime_time', "./text()"),
         ('showtime_date', "//label[@class='date']//text()"),
     ]
 
     calendar_legends = {
-        "//*[@class='footer']": TextLegendParser(stopwords=[
+        "//*[@class='footer']": LegendParser(stopwords=[
             ur'.*změna programu vyhrazena\.'
         ])
     }

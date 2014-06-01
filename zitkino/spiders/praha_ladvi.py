@@ -5,7 +5,7 @@ from scrapy.selector import Selector
 
 from .base import BaseCinemaSpider
 from ..processors import DateRanges
-from ..parsers import TextTagParser, SwitchParser
+from ..parsers import TagParser, SwitchParser
 
 
 def create_dates_parser(*weekdays):
@@ -35,7 +35,7 @@ class Spider(BaseCinemaSpider):
 
     calendar_showtime = [
         ('title', "./ancestor::tr[1]//td[1]//text()"),
-        ('tags', "./ancestor::tr[1]//td[2]", TextTagParser()),
+        ('tags', "./ancestor::tr[1]//td[2]", TagParser()),
         ('min_age_restriction', "./ancestor::tr[1]//td[3]//text()"),
         ('duration', "./ancestor::tr[1]//td[4]//text()"),
         ('showtime_time', ".//text()"),
